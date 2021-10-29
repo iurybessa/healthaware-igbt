@@ -1,32 +1,36 @@
-function [pred,deg,rul]=evol_prog(datain,tau,zeta,buffer,ff,sep,EOL,EOLtime)
+function [pred,deg,rul,EEFIG]=evol_prog(datain,tau,zeta,buffer,ff,sep,EOL,EOLtime)
 % This function runs the evolvolving fuzzy modeling algorithm (EEFIG) with
 % the "winner takes it all" granularity allocation approach for describe
 % the degradation dynamics from a health index (HI) time-series data. The
 % input/output variables are described as follows:
-%   - datain: column vector with the time-series of the HI;
+%   - datain: line vector with the time-series of the HI;
 %   - tau: it is the number of lags in the autoregressive part of the
 %   Takagi-Sugeno fuzzy model;
-%   - zeta: number of consecutives anomalies necesary to enable the granule
+%   - zeta: number of consecutive anomalies necesary to enable the granule
 %   creation;
 %   - buffer: number of past data used in the RLS;
 %   - ff: forgetting factor of the RLS;
-%   - sep: c index of the c-saparation metric used for allow the granule
+%   - sep: c index of the c-separation metric used for allow the granule
 %   creation;
 %   - EOL: end of life treshold of the HI to estimate the remaining useful
 %   life;
-%   - EOLtime: the instant of the EOL.
+%   - EOLtime: the instant of the EOL;
+%   - pred: one-ste ahead prediction time-series (for the HI);
+%   - deg: time-series of the HI;
+%   - rul: time-series of the predicted rul;
+%   - EEFIG: is the final TS fuzzy granular model (cell structure).
 % 
 % Brasilia, October 2021
 
 %% Initialization
 data1 = datain';
-data = data1(tau:end,1);
+data = data1(tau:end,:);
 for i=1:tau-1
-    data=[data,data1(tau-i:end-i,1)];
+    data=[data,data1(tau-i:end-i,:)];
 end
 [n,p] = size(data);
-theta{1}=zeros(tau+1,1);
-Pm0=1e5*eye(tau+1);
+theta{1}=zeros(p+1,1);
+Pm0=1e5*eye(p+1);
 P{1}=Pm0;
 thr = chi2inv(0.999,p);
 separation = sep;
