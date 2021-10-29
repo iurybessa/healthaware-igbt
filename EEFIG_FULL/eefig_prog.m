@@ -4,19 +4,22 @@ clc, clear all, close all
 global r
 r = 0;
 dec = 10;
-tau=4;
+tau=3;
 %  Data loading
-load H1
-data1 = L(:,1);
+load varible
+% load vaar
+% load vaar3
+% load vaa5
+data1 = Cummulate1';
 data = data1(tau:end,1);
 for i=1:tau-1
     data=[data,data1(tau-i:end-i,1)];
 end
 Pm0=1e5*eye(tau+1);
 P{1}=Pm0;
-ff=0.998;
+ff=0.995;
 theta{1}=zeros(tau+1,1);
-zeta=3;
+zeta=2;
 %  Preprocessing
 [n,p] = size(data);
 active_gran = zeros(n,1);
@@ -44,7 +47,6 @@ active_counter = 0;
 active_gran(1:buffer) = ones(buffer,1);
 labels(1:buffer) = ones(buffer,1);
 Anomalies = [];
-
 continuous_anomalies = 0;
 DR = 0;
 cond = 0;
@@ -58,7 +60,11 @@ memb_idx(:,2) = ones(buffer,1);
 lb1(:,1) = ones(buffer,1);
 lb1(:,2) = ones(buffer,1);
 v = 0;
-EOL=1;
+EOL=9;
+% EOL = 16.25
+% EOL = 2;
+% EOL=21
+% EOL=16.7
 for i = buffer+1:n
     xk = data(i,:);
     %% Change point detection
@@ -87,7 +93,7 @@ for i = buffer+1:n
         EEFIG = [EEFIG;newEEFIG];
         ngran = numel(EEFIG);
         P{ngran}=Pm0;
-        theta{ngran}=zeros(tau+1,1);
+        theta{ngran}=theta{ngran-1};
     end
 
     [g,EEFIG,~,lastactive] = data_evaluation(EEFIG,xk,thr);

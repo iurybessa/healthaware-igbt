@@ -247,7 +247,7 @@ classdef granule
         end % end duplicate
         %% Granule Evolution
         function [gran,is_anomaly] =  evolv_gran(prototype,xk,t1,g,wk_i,wk,...
-                l0_i,l0,l1_i,l1,f_i,f,varargin)
+                l0_i,l0,l1_i,l1,Lamb,Lamb_mu,f_i,f,varargin)
             global r
             if (sum(isnan(xk))>0)
                 gran = prototype;
@@ -344,7 +344,7 @@ classdef granule
             gran.m_it = [gran.m_it ; gran.m1_it];
             gran.m  = gran.m_it(end,:);
             [gran,is_Q_improved] = granularity_allocation(gran,gran_test,...
-                mahal1_xk,g,wk_i,wk,l0_i,l0,l1_i,l1,f_i,f);
+                mahal1_xk,g,wk_i,wk,l0_i,l0,l1_i,l1,Lamb,Lamb_mu,f_i,f);
             
             if is_Q_improved == 1
                 gran.counter = gran.counter + 1;
@@ -357,7 +357,7 @@ classdef granule
         end %end_evolv_gran
         %% Granule Step
         function [newprototype,is_anomaly] = gran_step(prototype,xk,sp,t1,wk_i,wk,...
-                lambda0_i,lambda0,lambda1_i,lambda1,f_i,f,varargin)
+                lambda0_i,lambda0,lambda1_i,lambda1,Lamb,Lamb_mu,f_i,f,varargin)
             newprototype = prototype;
             g = 1;
             if (nargin>3)
@@ -365,10 +365,10 @@ classdef granule
             end
             if (prototype.counter<sp)
                 [newprototype,is_anomaly] = newprototype.evolv_gran(xk,t1,g,wk_i,wk,...
-                    lambda0_i,lambda0,lambda1_i,lambda1,f_i,f,1);
+                    lambda0_i,lambda0,lambda1_i,lambda1,Lamb,Lamb_mu,f_i,f,1);
             else
                 [newprototype,is_anomaly] = newprototype.evolv_gran(xk,t1,g,wk_i,wk,...
-                    lambda0_i,lambda0,lambda1_i,lambda1,f_i,f,2);
+                    lambda0_i,lambda0,lambda1_i,lambda1,Lamb,Lamb_mu,f_i,f,2);
             end
         end %end_granule_step
     end %end_methods
