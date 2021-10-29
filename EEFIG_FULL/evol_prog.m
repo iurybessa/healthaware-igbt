@@ -15,6 +15,8 @@ function [pred,deg,rul]=evol_prog(datain,tau,zeta,buffer,ff,sep,EOL,EOLtime)
 %   - EOL: end of life treshold of the HI to estimate the remaining useful
 %   life;
 %   - EOLtime: the instant of the EOL.
+% 
+% Brasilia, October 2021
 
 %% Initialization
 data1 = datain';
