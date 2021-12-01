@@ -32,7 +32,7 @@ Apart from the first cell which is the time the rest as as follows
 
 
 [RMS,Mean,Std,Skewness,kurtosis,...
-   peak2peak,CrestFactor,ShapeFactor,ImpulseFactor,MarginFacto,Energy]
+   peak2peak,CrestFactor,ShapeFactor,ImpulseFactor,MarginFacto,EnerMgy]
 
 The monotonicity check was undertaken and the results can be seen from the figure (monotonicity_after_trig_smothening.jpg) in images.
 selcted features with high rates can be:::

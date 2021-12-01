@@ -1,7 +1,11 @@
-function [rul,xp]=predictRUL(eefig,xk,EOL,thr)
+function [rul,xp]=predictRUL(eefig,xk,EOL,thr,OFFSET)
 ngran=numel(eefig);
 
-xd=xk(1,2:end);
+if OFFSET
+    xd=xk(1,2:end);
+else
+    xd=xk(1,1:end);
+end
 [g,~,~,~] = data_evaluation(eefig,xd,thr);
 xpi=0;
 for i=1:ngran
@@ -14,7 +18,11 @@ j=1;
 while (xp(j,1)<=EOL && j<=100)
     j=j+1;
     [g,~,~,~] = data_evaluation(eefig,xd,thr);
-    xold=[1 xd];
+    if OFFSET
+        xold=[1 xd];
+    else
+        xold=xd;
+    end
     xpi=0;
     for i=1:ngran
         xpi=xpi+g(i)*xold*eefig(i).A;

@@ -1,51 +1,83 @@
-%% RUL Estimation with EEFIG
-
+%% Evolving Ellipsoidal Fuzzy Information Granules
 clc, clear all, close all
-
-%%  Parameters
-
-tau=4; % number of autoregressive terms
-OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
-load('features_trig.mat') % IGBT Dataset 
-EOL=1.573; % End of Life
-ff=0.999; % forgetting factor
-zeta=2; % Required anomalies for creating new rules
-buffer=5; % Number of initialization samples (> tau)
-
-%% Initialization
-
-% Data pre-processing
-data1 = Mfeatures2(:,2)-EOL;
-data = data1(tau:end,1);
+%  Initial Parameterization
+global r
+r = 0;
+dec = 10;
+tau=3;
+%  Data loading
+% load varible
+% load vaar
+% load vaar3
+% load vaa5
+OFFSET=0;
+load('features_trig.mat')
+EOL=1.573;
+% [Mfeatures2(:,2:4),Mfeatures2(:,6),Mfeatures2(:,8),Mfeatures2(:,11)]
+scale=kron(Mfeatures2(60,2:end),ones(size(Mfeatures2,1),1));
+D1=Mfeatures2(:,2:end)./scale -1;
+% data1 = Mfeatures2(:,2)-EOL;
+data1=[D1(:,2:4),D1(:,6),D1(:,8),D1(:,11)];
+nfeat=size(data1,2);
+data = data1(tau:end,:);
 for i=1:tau-1
     data=[data,data1(tau-i:end-i,1)];
 end
-
-% RLS initialization
 if OFFSET
-    Pm0=1e5*eye(tau+1);
-    theta{1}=zeros(tau+1,1);
+    Pm0=1e5*eye(nfeat*(tau+1));
+    theta{1}=zeros(nfeat*(tau+1),1);
 else
-	Pm0=1e5*eye(tau);
-    theta{1}=zeros(tau,1);
+	Pm0=1e5*eye(nfeat*tau);
+    theta{1}=zeros(nfeat*tau,1);
 end
 P{1}=Pm0;
+ff=0.995;
 
-% EEFIG initialization
+zeta=2;
+%  Preprocessing
 [n,p] = size(data);
+active_gran = zeros(n,1);
 labels = zeros(n,1);
-thr = chi2inv(0.99,p);
-separation = 0.2; % c-separation
+thr = chi2inv(0.999,p);
+% buffer = p+1;
+buffer=2;
+LastTen =zeros(10,1);
+LastTenIndex = 1;
+
+na = 10;
+separation = 0.1;
+
 aux_gran = granule([p,1]);
 aux_gran = aux_gran.gran_init(p,data(1:buffer,1:p));
+
 EEFIG = granule([p,1]);
 EEFIG = EEFIG.gran_init(p,data(1:buffer,1:p));
+
 trackerC = 1*eye(p);
 trackerm = mean(data(1:buffer,1:p));
 lambda = 0.9;
+
+active_counter = 0;
+active_gran(1:buffer) = ones(buffer,1);
+labels(1:buffer) = ones(buffer,1);
 Anomalies = [];
 continuous_anomalies = 0;
+DR = 0;
+cond = 0;
 
+w = 1;
+
+A = [];
+
+memb_idx(:,1) = ones(buffer,1);
+memb_idx(:,2) = ones(buffer,1);
+lb1(:,1) = ones(buffer,1);
+lb1(:,2) = ones(buffer,1);
+v = 0;
+% EOL = 16.25
+% EOL = 2;
+% EOL=21
+% EOL=16.7
 for i = buffer+1:n
     xk = data(i,:);
     %% Change point detection
@@ -64,13 +96,11 @@ for i = buffer+1:n
 
     if is_anomaly > 0
         Anomalies =[Anomalies;xk];
-    else
-        Anomalies=[];
     end
  
     %% New EEFIG
     
-    if (cs==1 && continuous_anomalies>(zeta))
+    if (cs==1 && continuous_anomalies>(zeta)) && (size(Anomalies,1)-continuous_anomalies+1>0)
         newEEFIG = aux_gran.gran_init(p,Anomalies);
         Anomalies = [];
         EEFIG = [EEFIG;newEEFIG];
