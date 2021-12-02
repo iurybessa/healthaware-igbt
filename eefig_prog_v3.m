@@ -1,7 +1,8 @@
 %% RUL Estimation with EEFIG
 
 clc, clear all, close all
-
+addpath('EEFIG_FULL');
+addpath('to_iury');
 %%  Parameters
 
 tau=4; % number of autoregressive terms
@@ -15,6 +16,7 @@ buffer=5; % Number of initialization samples (> tau)
 %% Initialization
 
 % Data pre-processing
+scale=kron(Mfeatures2(60,2:end),ones(size(Mfeatures2,1),1));
 data1 = Mfeatures2(:,2)-EOL;
 data = data1(tau:end,1);
 for i=1:tau-1
