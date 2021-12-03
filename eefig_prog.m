@@ -5,18 +5,18 @@ addpath('EEFIG_FULL');
 addpath('to_iury');
 %%  Parameters
 
-tau=4; % number of autoregressive terms
+tau=7; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
 load('features_trig.mat') % IGBT Dataset 
-EOL=1.573; % End of Life
-ff=0.999; % forgetting factor
+EOL= 0.035;%1.573; % End of Life
+ff=0.995; % forgetting factor
 zeta=2; % Required anomalies for creating new rules
-buffer=5; % Number of initialization samples (> tau)
+buffer=12; % Number of initialization samples (> tau)
 
 %% Initialization
 
 % Data pre-processing
-data1 = Mfeatures2(:,2)-EOL;
+data1 = Mfeatures2(:,4)-EOL;
 data = data1(tau:end,1);
 for i=1:tau-1
     data=[data,data1(tau-i:end-i,1)];
@@ -88,9 +88,9 @@ for i = buffer+1:n
             psi=[];
             for j=1:buffer
                 if OFFSET
-                    psi_j=[1 data(i-j+1,:)];
+                    psi_j=[1 data(i-j,:)];
                 else
-                    psi_j=[data(i-j+1,:)];
+                    psi_j=[data(i-j,:)];
                 end
                 psi=[psi;psi_j];
             end
@@ -98,9 +98,9 @@ for i = buffer+1:n
             psi=[];
             for j=1:i
                 if OFFSET
-                    psi_j=[1 data(i-j+1,:)];
+                    psi_j=[1 data(i-j,:)];
                 else
-                    psi_j=[data(i-j+1,:)];
+                    psi_j=[data(i-j,:)];
                 end
                 psi=[psi;psi_j];
             end
@@ -108,7 +108,7 @@ for i = buffer+1:n
         for k=1:ngran
             theta0=theta{k};
             P0=P{k};
-            yk=data(i,1);
+            yk=data(i-tau+1,1);
             [K_k,thetap,Pp]=rls_step3(P0,yk,psi,theta0,g(k),ff);
             theta{k}=thetap;
             P{k}=Pp;

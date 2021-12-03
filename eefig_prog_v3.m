@@ -16,22 +16,33 @@ buffer=5; % Number of initialization samples (> tau)
 %% Initialization
 
 % Data pre-processing
-scale=kron(Mfeatures2(60,2:end),ones(size(Mfeatures2,1),1));
-data1 = Mfeatures2(:,2)-EOL;
-data = data1(tau:end,1);
+datain=Mfeatures2(:,2:end);
+datain(:,3)=1./datain(:,3);
+datain(:,6)=1./datain(:,6);
+datain(:,8)=1./datain(:,8);
+datain(:,9)=1./datain(:,9);
+datain(:,10)=1./datain(:,10);
+datain(:,11)=1./datain(:,11);
+scale=kron(datain(60,:),ones(size(datain,1),1));
+D1=datain./scale -1;
+data1=[D1(:,1:3),D1(:,6:8),D1(:,11)];
+nfeat=size(data1,2);
+data = data1(tau:end,:);
 for i=1:tau-1
-    data=[data,data1(tau-i:end-i,1)];
+    data=[data,data1(tau-i:end-i,:)];
 end
 
 % RLS initialization
-if OFFSET
-    Pm0=1e5*eye(tau+1);
-    theta{1}=zeros(tau+1,1);
-else
-	Pm0=1e5*eye(tau);
-    theta{1}=zeros(tau,1);
+for l=1:nfeat
+    if OFFSET
+        Pm0=1e5*eye(nfeat*(tau+1));
+        theta{1,l}=zeros(nfeat*(tau+1),1);
+    else
+        Pm0=1e5*eye(nfeat*tau);
+        theta{1,l}=zeros(nfeat*tau,1);
+    end
+    P{1,l}=Pm0;
 end
-P{1}=Pm0;
 
 % EEFIG initialization
 [n,p] = size(data);
@@ -77,8 +88,10 @@ for i = buffer+1:n
         Anomalies = [];
         EEFIG = [EEFIG;newEEFIG];
         ngran = numel(EEFIG);
-        P{ngran}=Pm0;
-        theta{ngran}=theta{ngran-1};
+        for l=1:nfeat
+            P{ngran,l}=Pm0;
+            theta{ngran,l}=theta{ngran-1,l};
+        end
     end
 
     [g,EEFIG,~,lastactive] = data_evaluation(EEFIG,xk,thr);
@@ -89,9 +102,9 @@ for i = buffer+1:n
             psi=[];
             for j=1:buffer
                 if OFFSET
-                    psi_j=[1 data(i-j+1,:)];
+                    psi_j=[1 data(i-j,:)];
                 else
-                    psi_j=[data(i-j+1,:)];
+                    psi_j=[data(i-j,:)];
                 end
                 psi=[psi;psi_j];
             end
@@ -99,35 +112,45 @@ for i = buffer+1:n
             psi=[];
             for j=1:i
                 if OFFSET
-                    psi_j=[1 data(i-j+1,:)];
+                    psi_j=[1 data(i-j,:)];
                 else
-                    psi_j=[data(i-j+1,:)];
+                    psi_j=[data(i-j,:)];
                 end
                 psi=[psi;psi_j];
             end
         end
         for k=1:ngran
-            theta0=theta{k};
-            P0=P{k};
-            yk=data(i,1);
-            [K_k,thetap,Pp]=rls_step3(P0,yk,psi,theta0,g(k),ff);
-            theta{k}=thetap;
-            P{k}=Pp;
-            EEFIG(k).A=theta{k};
+            if OFFSET
+                Ak=zeros(nfeat,nfeat*(tau+1));
+            else
+                Ak=zeros(nfeat,nfeat*tau);
+            end
+            for l=1:nfeat
+                P0=P{k,l};
+                theta0=theta{k,l};
+                yk=data(i:i+tau-1,l);
+                [K_k,thetap,Pp]=rls_step3(P0,yk,psi,theta0,g(k),ff);
+                theta{k,l}=thetap;
+                Ak(l,:)=thetap;
+                P{k,l}=Pp;
+            end            
+%             theta0=theta{k};
+%             P0=P{k};
+            EEFIG(k).A=Ak;
         end
         datahat{i+1} = 0;
         for h = 1:ngran
             if OFFSET
-                datahat{i+1} = datahat{i+1}+g(h)*[1 data(i,:)]*theta{h};
+                datahat{i+1} = datahat{i+1}+g(h)*EEFIG(h).A*psi(1,:)';
             else
-                datahat{i+1} = datahat{i+1}+g(h)*[data(i,:)]*theta{h};
+                datahat{i+1} = datahat{i+1}+g(h)*EEFIG(h).A*psi(1,:)';
             end
         end
         if i>10
             if OFFSET
-                [rul(i,:),xp]=predictRUL(EEFIG,[1 data(i,:)],EOL,thr,OFFSET);
+                [rul(i,:),xp]=predictRUL(EEFIG,psi(1,:),EOL,thr,OFFSET);
             else
-                [rul(i,:),xp]=predictRUL(EEFIG,[data(i,:)],0,thr,OFFSET);
+                [rul(i,:),xp]=predictRUL(EEFIG,psi(1,:),0,thr,OFFSET);
             end
         else
             rul(i,:) = nan;
