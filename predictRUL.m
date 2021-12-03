@@ -15,7 +15,7 @@ end
 xp(1,1)=xpi;
 xd=[xpi,xd(1,1:end-1)];
 j=1;
-while (xp(j,1)>=EOL && j<=100)
+while (xp(j,1)<=EOL && j<=100)
     j=j+1;
     [g,~,~,~] = data_evaluation(eefig,xd,thr);
     if OFFSET

@@ -8,15 +8,15 @@ addpath('to_iury');
 tau=7; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
 load('features_trig.mat') % IGBT Dataset 
-EOL= 0.035;%1.573; % End of Life
-ff=0.995; % forgetting factor
+EOL= 1.573; % End of Life
+ff=0.999; % forgetting factor
 zeta=2; % Required anomalies for creating new rules
-buffer=12; % Number of initialization samples (> tau)
+buffer=9; % Number of initialization samples (> tau)
 
 %% Initialization
 
 % Data pre-processing
-data1 = Mfeatures2(:,4)-EOL;
+data1 = Mfeatures2(:,2)-EOL;
 data = data1(tau:end,1);
 for i=1:tau-1
     data=[data,data1(tau-i:end-i,1)];
@@ -24,10 +24,10 @@ end
 
 % RLS initialization
 if OFFSET
-    Pm0=1e5*eye(tau+1);
+    Pm0=1e6*eye(tau+1);
     theta{1}=zeros(tau+1,1);
 else
-	Pm0=1e5*eye(tau);
+	Pm0=1e6*eye(tau);
     theta{1}=zeros(tau,1);
 end
 P{1}=Pm0;
@@ -152,3 +152,15 @@ end
 % grid on
 % plot(data(:,1),data(:,2),'k.')
 
+vrul=60-buffer-1:-1:0;
+plot(vrul)
+hold on
+plot(rul)
+xlabel('time')
+ylabel('RUL')
+plot(0.7*vrul,'-.k','Linewidth',2)
+plot(1.3*vrul,'-.k','Linewidth',2)
+figure
+plot(pred)
+hold on
+plot(deg)
