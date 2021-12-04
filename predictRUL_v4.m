@@ -1,4 +1,4 @@
-function [rul,xp]=predictRUL(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu)
+function [rul,xp]=predictRUL_v4(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,Y,k)
 ngran=numel(eefig);
 
 if OFFSET
@@ -26,7 +26,7 @@ vs=1.96;
 xp_inf(1,1)=xpi-vs*sqrt(nu0);
 xp_sup(1,1)=xpi+vs*sqrt(nu0);
 
-xd=[xpi,xd(1,1:end-1)];
+xd=[xd(1,2:end) xpi];
 j=1;
 while (xp(j,1)<=EOL-1e-3 && j<=100)
     j=j+1;
@@ -46,15 +46,16 @@ while (xp(j,1)<=EOL-1e-3 && j<=100)
     end    
     xp(j,1)=xpi;
     
-    Xi = Hs'*Thetas';
+    Xi = Hs'*Thetas((OFFSET+1):end,:)';
     nuj = Xi*(covmat(nu).*rho_nu)*Xi' + nu0;
     xp_inf(j,1)=xpi-vs*sqrt(nuj);
     xp_sup(j,1)=xpi+vs*sqrt(nuj);
     
-    xd=[xpi,xd(1,1:end-1)];
+    %xd=[xpi,xd(1,1:end-1)];
+    xd=[xd(1,2:end) xpi];
     nu=[nuj,nu(1:end-1)];
 end
-
+1;
 if j<100
     rul = j-1;
 else

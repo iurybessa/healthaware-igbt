@@ -5,24 +5,34 @@ addpath('EEFIG_FULL');
 addpath('to_iury');
 %%  Parameters
 
-tau=5; % number of autoregressive terms
+tau=7; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
 load('features_trig.mat') % IGBT Dataset 
 EOL= 1.573; % End of Life
 ff=0.999; % forgetting factor
 zeta=2; % Required anomalies for creating new rules
-buffer=10; % Number of initialization samples (> tau)
+buffer=9; % Number of initialization samples (> tau)
 
 %% Initialization
 
 % Data pre-processing
-%EOL = Mfeatures2(60,4);
 data1 = Mfeatures2(:,2)-EOL;
-data = data1(tau:end,1);
-for i=1:tau-1
-    data=[data,data1(tau-i:end-i,1)];
-end
 
+%data1 = movmean(data1, 10);
+
+idx = hankel(1:tau+1, tau+1:length(data1))';
+data2 = data1(idx);
+X = data2(:, 1:end-1);
+Y = data2(:, end);
+
+
+idx = hankel(1:tau, tau:length(data1))';
+data2 = data1(idx);
+X = data2(:, 1:end-1);
+Y = data2(:, end);
+X = [X (1:length(Y))'];
+
+%%
 % RLS initialization
 if OFFSET
     Pm0=1e6*eye(tau+1);
@@ -34,30 +44,42 @@ end
 P{1}=Pm0;
 
 % EEFIG initialization
-[n,p] = size(data);
+[n,p] = size(X);
 labels = zeros(n,1);
 thr = chi2inv(0.99,p);
 separation = 0.2; % c-separation
 aux_gran = granule([p,1]);
-aux_gran = aux_gran.gran_init(p,data(1:buffer,1:p));
+aux_gran = aux_gran.gran_init(p,X(1:buffer,:));
 EEFIG = granule([p,1]);
-EEFIG = EEFIG.gran_init(p,data(1:buffer,1:p));
+EEFIG = EEFIG.gran_init(p,X(1:buffer,:));
 trackerC = 1*eye(p);
-trackerm = mean(data(1:buffer,1:p));
-lambda = 0.9;
+trackerm = mean(X(1:buffer,:));
+lambda = 0.99;
 Anomalies = [];
 continuous_anomalies = 0;
 
 EEFIG_Error = [];
 EEFIG_Error_Var = [];
 
+
+for i=1:buffer
+    if OFFSET
+        xk = [1 X(i,:)]';
+    else
+        xk = X(i,:)';
+    end
+    [thetak,Pk]=wrls_murilo(P{1},Y(i),xk,theta{1},1,1);
+    theta{1} = thetak;
+    P{1} = Pk;
+end
+
 for i = buffer+1:n
-    xk = data(i,:);
+    xk = X(i,:);
     %% Change point detection
     [~,~,is_anomaly,~] = data_evaluation(EEFIG,xk,thr);
 
     %% Change point detection
-    [trackerC,trackerm] = tracker_gran(trackerC,trackerm,i,lambda,data(i,1:p));
+    [trackerC,trackerm] = tracker_gran(trackerC,trackerm,i,lambda,X(i,:));
     cs = c_separation(EEFIG,trackerC,trackerm,separation);
 
     %% Anomaly Detection and Data Labeling   
@@ -88,62 +110,36 @@ for i = buffer+1:n
     ngran = numel(EEFIG);   
        
     %% Estimation of the A's matrices - Consequent Estimation via RLS
-        if i>buffer
-            psi=[];
-            for j=1:buffer
-                if OFFSET
-                    psi_j=[1 data(i-j,:)];
-                else
-                    psi_j=[data(i-j,:)];
-                end
-                psi=[psi;psi_j];
-            end
-        else
-            psi=[];
-            for j=1:i
-                if OFFSET
-                    psi_j=[1 data(i-j,:)];
-                else
-                    psi_j=[data(i-j,:)];
-                end
-                psi=[psi;psi_j];
-            end
-        end
-        for k=1:ngran
-            theta0=theta{k};
-            P0=P{k};
-            yk=flipud(data(i-buffer+1:i,1));
-            [K_k,thetap,Pp]=rls_step3(P0,yk,psi,theta0,g(k),ff);
-            theta{k}=thetap;
-            P{k}=Pp;
-            EEFIG(k).A=theta{k};
-        end
-        datahat{i+1} = 0;
-        for h = 1:ngran
-            if OFFSET
-                datahat{i+1} = datahat{i+1}+g(h)*[1 data(i,:)]*theta{h};
-            else
-                datahat{i+1} = datahat{i+1}+g(h)*[data(i,:)]*theta{h};
-            end
-        end
-        
-        err = data(i,1) - datahat{i};
-        EEFIG_Error = [EEFIG_Error err];
-        
-        if i>10
-            if OFFSET
-                [rul(i,:),xp]=predictRUL(EEFIG,[1 data(i,:)],EOL,thr,OFFSET);
-            else
-                rho_nu = corr(data)*0+1;
-                nu0 = var(EEFIG_Error);
-                %nu0 = movvar(EEFIG_Error, 10);
-                %nu0 = nu0(end);
-                EEFIG_Error_Var(end+1) = nu0;
-                [rul(i-buffer,:),xp]=predictRUL(EEFIG,[data(i,:)],0,thr,OFFSET,nu0,rho_nu);
-            end
-        else
-            rul(i,:) = nan;
-        end
+    if OFFSET
+        xk = [1 X(i,:)]';
+    else
+        xk = X(i,:)';
+    end
+    for k=1:ngran
+        [thetak,Pk]=wrls_murilo(P{k},Y(i),xk,theta{k},g(k),1);
+        theta{k} = thetak;
+        P{k} = Pk;
+        EEFIG(k).A=theta{k};
+    end
+    datahat{i+1} = 0;
+    for h = 1:ngran
+        datahat{i+1} = datahat{i+1}+g(h)*xk'*theta{h};
+    end
+
+    err = Y(i) - datahat{i+1};
+    EEFIG_Error = [EEFIG_Error err];
+
+    if i>10
+        rho_nu = corr(X)*0+1;
+        nu0 = var(EEFIG_Error);
+        %nu0 = movvar(EEFIG_Error, 10);
+        %nu0 = nu0(end);
+        %break
+        EEFIG_Error_Var(end+1) = nu0;
+        [rul(i-buffer,:),xp]=predictRUL_v4(EEFIG,xk',0,thr,OFFSET,nu0,rho_nu,Y,i);
+    else
+        rul(i,:) = nan;
+    end
 end
 
   
@@ -152,7 +148,7 @@ end
 
 for i = buffer+2:size(datahat,2)-1
     pred(i,:) = datahat{i};
-    deg(i,:) = data(i,1);
+    deg(i,:) = X(i,1);
 end
 
 % c1=colormap(jet(14));
@@ -179,3 +175,20 @@ hold on
 plot(deg)
 
 
+%%
+w = X(1:10,:)\Y(1:10,:);
+%w = theta{1};
+% w=[   -0.2453
+%     0.8163
+%    -0.9233
+%     0.1475
+%     0.2123
+%    -0.6484
+%     1.6484];
+% plot(Y)
+% hold on
+% y = X(1,:)';
+% for i = 1:60
+%     y(end+1) = y(end-tau+1:end)' * w;
+% end
+% plot(y(tau+1:end))
