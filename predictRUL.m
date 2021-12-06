@@ -1,12 +1,12 @@
-function [rul,xp]=predictRUL(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu)
+function [rul,xp]=predictRUL(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,zk,pdx)
 ngran=numel(eefig);
-
+epsi=1e-3;
 if OFFSET
     xd=xk(1,2:end);
 else
     xd=xk(1,1:end);
 end
-[g,~,~,~] = data_evaluation(eefig,xd,thr);
+[g,~,~,~] = data_evaluation(eefig,zk,thr);
 xpi=0;
 
 Thetas = [];
@@ -28,9 +28,9 @@ xp_sup(1,1)=xpi+vs*sqrt(nu0);
 
 xd=[xpi,xd(1,1:end-1)];
 j=1;
-while (xp(j,1)<=EOL-1e-3 && j<=100)
+while ( ((pdx && xp(j,1)<=EOL-epsi) || (~pdx && xp(j,1)>=EOL+epsi) ) && j<=150)
     j=j+1;
-    [g,~,~,~] = data_evaluation(eefig,xd,thr);
+    [g,~,~,~] = data_evaluation(eefig,zk,thr);
     if OFFSET
         xold=[1 xd];
     else
