@@ -22,7 +22,7 @@ datain(:,6)=1./datain(:,6);
 datain(:,8)=1./datain(:,8);
 datain(:,9)=1./datain(:,9);
 datain(:,10)=1./datain(:,10);
-datain(:,11)=1./datain(:,11);
+% datain(:,11)=1./datain(:,11);
 scale=kron(datain(60,:),ones(size(datain,1),1));
 D1=datain./scale -1;
 data1=[D1(:,1:3),D1(:,6:8),D1(:,11)];
@@ -100,12 +100,14 @@ for i = buffer+1:n
     %% Estimation of the A's matrices - Consequent Estimation via RLS
         if i>buffer
             psi=[];
+            YK=[];
             for j=1:buffer
                 if OFFSET
                     psi_j=[1 data(i-j,:)];
                 else
                     psi_j=[data(i-j,:)];
                 end
+                YK=[YK;data(i-j+1,1:nfeat)];
                 psi=[psi;psi_j];
             end
         else
@@ -116,6 +118,7 @@ for i = buffer+1:n
                 else
                     psi_j=[data(i-j,:)];
                 end
+                YK=[YK;data(i-j+1,1:nfeat)];
                 psi=[psi;psi_j];
             end
         end
@@ -128,7 +131,7 @@ for i = buffer+1:n
             for l=1:nfeat
                 P0=P{k,l};
                 theta0=theta{k,l};
-                yk=data(i:i+tau-1,l);
+                yk=YK(:,l);
                 [K_k,thetap,Pp]=rls_step3(P0,yk,psi,theta0,g(k),ff);
                 theta{k,l}=thetap;
                 Ak(l,:)=thetap;
@@ -146,19 +149,18 @@ for i = buffer+1:n
                 datahat{i+1} = datahat{i+1}+g(h)*EEFIG(h).A*psi(1,:)';
             end
         end
-        if i>10
-            if OFFSET
-                [rul(i,:),xp]=predictRUL(EEFIG,psi(1,:),EOL,thr,OFFSET);
-            else
-                [rul(i,:),xp]=predictRUL(EEFIG,psi(1,:),0,thr,OFFSET);
-            end
-        else
-            rul(i,:) = nan;
-        end     
+%         if i>10
+%             if OFFSET
+%                 [rul(i,:),rulmax(i,:),rulmin(i,:),xp]=predictRUL2(EEFIG,psi(1,:),thr,OFFSET);
+%             else
+%                 [rul(i,:),rulmax(i,:),rulmin(i,:),xp]=predictRUL2(EEFIG,psi(1,:),thr,OFFSET);
+%             end
+%         else
+%             rul(i,:) = nan;
+%             rulmin(i,:) = nan;
+%             rulman(i,:) = nan;
+%         end     
 end
-
-  
-
 % [g,~,~,~] = data_evaluation(EEFIG,data(i,:),thr)
 
 for i = buffer+2:size(datahat,2)-1
