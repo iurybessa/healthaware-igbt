@@ -1,6 +1,6 @@
 function [rul,xp]=predictRUL(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,zk,pdx,tidx)
 ngran=numel(eefig);
-epsi=1e-6;
+epsi=9e-4;
 if OFFSET
     xd=xk(1,2:end);
 else

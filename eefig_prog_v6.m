@@ -6,17 +6,17 @@ addpath('data_igbt');
 %%  Parameters
 
 tau=3; % number of autoregressive terms
-tau2=4; % number of autoregressive terms
+tau2=5; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
 load('device2_scaledtrigfeatures.mat') % IGBT Dataset
 load('device2_features.mat')
-iEOL=68;
+iEOL=64;
 iFeat=4;
 pdx=0;
 EOL= Mfeatures2(iEOL,iFeat); % End of Life
-ff=0.8; % forgetting factor
-zeta=4; % Required anomalies for creating new rules
-buffer=4; % Number of initialization samples (> tau)
+ff=0.99; % forgetting factor
+zeta=3; % Required anomalies for creating new rules
+buffer=5; % Number of initialization samples (> tau)
 
 %% Initialization
 
@@ -34,17 +34,17 @@ Zk = features.Energy(idx2);
 
 % RLS initialization
 if OFFSET
-    Pm0=1e4*eye(tau+1);
+    Pm0=1e2*eye(tau+1);
     theta{1}=zeros(tau+1,1);
 else
-	Pm0=1e4*eye(tau);
+	Pm0=1e2*eye(tau);
     theta{1}=zeros(tau,1);
 end
 P{1}=Pm0;
 for j=1:buffer
     theta0=theta{1};
     P1=P{1};
-    [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,1,ff);
+    [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,1,1);
 %             [t2,P2]=wrls_murilo(P1,Yk(j),Xk(j,:)',theta0,g(k),ff);
     P{1}=P2;
     theta{1}=t2;
@@ -53,7 +53,7 @@ end
 % EEFIG initialization
 [n,p] = size(Zk);
 labels = zeros(n,1);
-thr = chi2inv(0.999,p);
+thr = chi2inv(0.99,p);
 separation = 2; % c-separation
 aux_gran = granule([p,1]);
 aux_gran = aux_gran.gran_init(p,Zk(1:buffer,1:p));
@@ -61,7 +61,7 @@ EEFIG = granule([p,1]);
 EEFIG = EEFIG.gran_init(p,Zk(1:buffer,1:p));
 trackerC = 1*eye(p);
 trackerm = mean(Zk(1:buffer,1:p));
-lambda = 0.8;
+lambda = 0.5;
 Anomalies = [];
 continuous_anomalies = 0;
 
@@ -101,10 +101,10 @@ for i = buffer+1:n-tau
         P{ngran}=Pm0;
         theta{ngran}=theta{ngran-1};
 %         theta{ngran}=(Yk(i-zeta+1:i)\Xk(i-zeta+1:i,:))';
-        for j=i-zeta+1:i-1
+        for j=i-zeta:i-1
             theta0=theta{ngran};
             P1=P{ngran};
-            [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,g(k),ff);
+            [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,g(k),1);
 %             [t2,P2]=wrls_murilo(P1,Yk(j),Xk(j,:)',theta0,g(k),ff);
             P{ngran}=P2;
             theta{ngran}=t2;
@@ -198,7 +198,7 @@ end
 % grid on
 % plot(data(:,1),data(:,2),'k.')
 
-vrul=iEOL-buffer-1:-1:0;
+vrul=iEOL-buffer-tau:-1:0;
 plot(vrul)
 hold on
 plot(rul)
