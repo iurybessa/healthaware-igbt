@@ -10,7 +10,7 @@ tau2=5; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
 load('device2_scaledtrigfeatures.mat') % IGBT Dataset
 load('device2_features.mat')
-iEOL=66;
+iEOL=64;
 iFeat=4;
 pdx=0;
 EOL= Mfeatures2(iEOL,iFeat); % End of Life
