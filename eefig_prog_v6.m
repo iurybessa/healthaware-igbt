@@ -23,12 +23,12 @@ buffer=4; % Number of initialization samples (> tau)
 % Data pre-processing
 %EOL = Mfeatures2(60,4);
 data1 = Mfeatures2(:,iFeat)-EOL;
-idx = hankel(1:tau, tau:length(data1))';
+idx = hankel(1:tau+1, tau+1:length(data1))';
 idx2 = hankel(1:tau2, tau2:length(features.Energy))';
 data2 = data1(idx);
 Xk = data2(:, 1:end-1);
 Yk = data2(:, end);
-Xk = [Xk (1:length(Yk))'];
+% Xk = [Xk (1:length(Yk))'];
 Zk = features.Energy(idx2);
 
 
