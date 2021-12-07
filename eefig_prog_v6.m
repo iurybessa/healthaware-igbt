@@ -152,27 +152,29 @@ for i = buffer+1:n-tau
             EEFIG(k).A=theta{k};
         end
         datahat{i+1} = 0;
+        ykh = 0;
         for h = 1:ngran
             if OFFSET
                 datahat{i+1} = datahat{i+1}+g(h)*[1 data(i,:)]*theta{h};
             else
                 datahat{i+1} = datahat{i+1}+g(h)*[Xk(i,:)]*theta{h};
+                ykh = ykh+g(h)*[Xk(i,:)]*theta{h};
             end
         end
         
-        err = Xk(i,1) - datahat{i};
+        err = Yk(i) - ykh;
         EEFIG_Error = [EEFIG_Error err];
         
         if i>20
             if OFFSET
                 [rul(i,:),xp]=predictRUL(EEFIG,[1 data(i,:)],EOL,thr,OFFSET);
             else
+                %triu([0.999.^(0:2); 0.999.^(-1:1); 0.999.^(-2:0)])
                 rho_nu = corr(Xk)*0+1;
-                nu0 = var(EEFIG_Error);
-                %nu0 = movvar(EEFIG_Error, 10);
-                %nu0 = nu0(end);
+                
+                nu0 = var(EEFIG_Error(max(1,end-buffer):end));
                 EEFIG_Error_Var(end+1) = nu0;
-                [rul(i-buffer,:),xp]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx);
+                [rul(i-buffer,:),xp,rul_inf(i-buffer,:)]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
             end
         else
             rul(i,:) = nan;
@@ -198,14 +200,31 @@ end
 % grid on
 % plot(data(:,1),data(:,2),'k.')
 
+%%
+subplot(4,1,1:3)
 vrul=iEOL-buffer-tau:-1:0;
-plot(vrul)
+
+vidx = 1:length(vrul);
+plot(vidx,vrul(vidx),'b--','Linewidth',1)
 hold on
-plot(rul)
+plot(vidx,rul(vidx),'r-','LineWidth',1.5)
+%plot(vidx,rul_inf(vidx))
+rul_sup = rul + (rul-rul_inf);
+%plot(vidx,rul_sup(vidx));
+errorbar(vidx,rul(vidx),rul(vidx)-rul_inf(vidx),rul(vidx)-rul_sup(vidx),'ko')
+
 xlabel('time')
 ylabel('RUL')
-plot(0.7*vrul,'-.k','Linewidth',2)
-plot(1.3*vrul,'-.k','Linewidth',2)
+alpha=0.3;
+plot(vidx,(1-alpha)*vrul(vidx),':b','Linewidth',1.5)
+plot(vidx,(1+alpha)*vrul(vidx),':b','Linewidth',1.5)
+[~,maxgvec] = max(gvec');
+
+subplot(4,1,4)
+stairs(vidx, maxgvec(vidx)*5, 'LineWidth', 2);
+
+
+%%
 figure
 plot(pred)
 hold on

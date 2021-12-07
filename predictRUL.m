@@ -1,4 +1,4 @@
-function [rul,xp]=predictRUL(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,zk,pdx,tidx)
+function [rul,xp,rul_inf]=predictRUL(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,zk,pdx,Y)
 ngran=numel(eefig);
 epsi=9e-4;
 if OFFSET
@@ -55,11 +55,16 @@ while ( ((pdx && xp(j,1)<=EOL-epsi) || (~pdx && xp(j,1)>=EOL+epsi) ) && j<=150)
     xd=[xpi,xd(1,1:end-1)];
     nu=[nuj,nu(1:end-1)];
 end
-
 if j<150
+    if isempty(find(xp_inf < 0, 1))
+        rul_inf = 0;
+    else
+        rul_inf = find(xp_inf < 0, 1) - 1;
+    end
     rul = j-1;
 else
     rul=inf;
+    rul_inf=inf;
 end
 
 end
