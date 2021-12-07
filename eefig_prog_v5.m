@@ -23,12 +23,12 @@ buffer=4; % Number of initialization samples (> tau)
 % Data pre-processing
 %EOL = Mfeatures2(60,4);
 data1 = Mfeatures2(:,iFeat)-EOL;
-idx = hankel(1:tau, tau:length(data1))';
+idx = hankel(1:tau+1, tau+1:length(data1))';
 idx2 = hankel(1:tau2, tau2:length(features.Energy))';
 data2 = data1(idx);
 Xk = data2(:, 1:end-1);
 Yk = data2(:, end);
-Xk = [Xk (1:length(Yk))'];
+%Xk = [Xk (1:length(Yk))'];
 Zk = features.Energy(idx2);
 
 
@@ -158,7 +158,8 @@ for i = buffer+1:n-tau
                 %nu0 = movvar(EEFIG_Error, 10);
                 %nu0 = nu0(end);
                 EEFIG_Error_Var(end+1) = nu0;
-                [rul(i-buffer,:),xp]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx);
+                %[rul(i-buffer,:),xp]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx);
+                [rul(i-buffer,:),xp]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
             end
         else
             rul(i,:) = nan;

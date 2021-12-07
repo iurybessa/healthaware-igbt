@@ -108,7 +108,7 @@ if strcmp(Type,'2D'),
     plot(C(1),C(2),'b*');
 %     axis equal grid
 else
-    mesh(XX,YY,ZZ);
+    mesh(XX,YY,ZZ,'EdgeColor',PlotColor,'EdgeAlpha',0.3);
     axis equal
     hidden off
 end
