@@ -28,8 +28,8 @@ idx2 = hankel(1:tau2, tau2:length(features.Energy))';
 data2 = data1(idx);
 Xk = data2(:, 1:end-1);
 Yk = data2(:, end);
-%Xk = [Xk (1:length(Yk))'];
 Zk = features.Energy(idx2);
+
 
 
 % RLS initialization
@@ -158,8 +158,7 @@ for i = buffer+1:n-tau
                 %nu0 = movvar(EEFIG_Error, 10);
                 %nu0 = nu0(end);
                 EEFIG_Error_Var(end+1) = nu0;
-                %[rul(i-buffer,:),xp]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx);
-                [rul(i-buffer,:),xp]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
+                [rul(i-buffer,:),xp]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx);
             end
         else
             rul(i,:) = nan;
@@ -197,5 +196,3 @@ figure
 plot(pred)
 hold on
 plot(deg)
-
-
