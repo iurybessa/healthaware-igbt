@@ -5,16 +5,16 @@ addpath('EEFIG_FULL');
 addpath('data_igbt');
 %%  Parameters
 
-tau=3; % number of autoregressive terms
-tau2=5; % number of autoregressive terms
+tau=10; % number of autoregressive terms
+tau2=9; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
 load('device2_scaledtrigfeatures.mat') % IGBT Dataset
 load('device2_features.mat')
-iEOL=64;
+iEOL=68;
 iFeat=4;
 pdx=0;
 EOL= Mfeatures2(iEOL,iFeat); % End of Life
-ff=0.99; % forgetting factor
+ff=0.999; % forgetting factor
 zeta=3; % Required anomalies for creating new rules
 buffer=5; % Number of initialization samples (> tau)
 
@@ -34,10 +34,10 @@ Zk = features.Energy(idx2);
 
 % RLS initialization
 if OFFSET
-    Pm0=1e2*eye(tau+1);
+    Pm0=0.1e3*eye(tau+1);
     theta{1}=zeros(tau+1,1);
 else
-	Pm0=1e2*eye(tau);
+	Pm0=0.1e3*eye(tau);
     theta{1}=zeros(tau,1);
 end
 P{1}=Pm0;
@@ -53,7 +53,7 @@ end
 % EEFIG initialization
 [n,p] = size(Zk);
 labels = zeros(n,1);
-thr = chi2inv(0.99,p);
+thr = chi2inv(0.999,p);
 separation = 2; % c-separation
 aux_gran = granule([p,1]);
 aux_gran = aux_gran.gran_init(p,Zk(1:buffer,1:p));
@@ -61,7 +61,7 @@ EEFIG = granule([p,1]);
 EEFIG = EEFIG.gran_init(p,Zk(1:buffer,1:p));
 trackerC = 1*eye(p);
 trackerm = mean(Zk(1:buffer,1:p));
-lambda = 0.5;
+lambda = 0.9;
 Anomalies = [];
 continuous_anomalies = 0;
 
@@ -98,10 +98,11 @@ for i = buffer+1:n-tau
         continuous_anomalies=0;
         EEFIG = [EEFIG;newEEFIG];
         ngran = numel(EEFIG);
-        P{ngran}=Pm0;
+%         P{ngran}=Pm0;
+        P{ngran}=P{ngran-1};
         theta{ngran}=theta{ngran-1};
 %         theta{ngran}=(Yk(i-zeta+1:i)\Xk(i-zeta+1:i,:))';
-        for j=i-zeta:i-1
+        for j=i-zeta:i
             theta0=theta{ngran};
             P1=P{ngran};
             [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,g(k),1);
@@ -172,9 +173,12 @@ for i = buffer+1:n-tau
                 %triu([0.999.^(0:2); 0.999.^(-1:1); 0.999.^(-2:0)])
                 rho_nu = corr(Xk)*0+1;
                 
-                nu0 = var(EEFIG_Error(max(1,end-buffer):end));
+                nu0 = var(EEFIG_Error(max(1,end-buffer+1):end));
                 EEFIG_Error_Var(end+1) = nu0;
-                [rul(i-buffer,:),xp,rul_inf(i-buffer,:)]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
+%                 if Yk(i)<=0
+%                     i
+%                 end
+                [rul(i-buffer,:),xp,rul_inf(i-buffer,:),rul_sup(i-buffer,:)]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
             end
         else
             rul(i,:) = nan;
@@ -202,14 +206,14 @@ end
 
 %%
 subplot(4,1,1:3)
-vrul=iEOL-buffer-tau:-1:0;
+vrul=iEOL-buffer-tau-1:-1:0;
 
 vidx = 1:length(vrul);
 plot(vidx,vrul(vidx),'b--','Linewidth',1)
 hold on
 plot(vidx,rul(vidx),'r-','LineWidth',1.5)
 %plot(vidx,rul_inf(vidx))
-rul_sup = rul + (rul-rul_inf);
+% rul_sup = rul + (rul-rul_inf);
 %plot(vidx,rul_sup(vidx));
 errorbar(vidx,rul(vidx),rul(vidx)-rul_inf(vidx),rul(vidx)-rul_sup(vidx),'ko')
 
