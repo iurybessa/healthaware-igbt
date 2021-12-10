@@ -1,4 +1,4 @@
-function [rul,xp,rul_inf,rul_sup]=predictRUL(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,zk,pdx,Y)
+function [rul,xp,rul_inf,rul_sup]=predictRUL_v9(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,zk,pdx,Y)
 ngran=numel(eefig);
 epsi=0*1.55e-3;
 if OFFSET
