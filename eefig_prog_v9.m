@@ -5,22 +5,22 @@ addpath('EEFIG_FULL');
 addpath('data_igbt');
 %%  Parameters
 
-tau=3; % number of autoregressive terms
-tau2=6; % number of autoregressive terms
+tau=4; % number of autoregressive terms
+tau2=5; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
-load('device4_scaledtrigfeatures.mat') % IGBT Dataset
-load('device4_features.mat')
+load('device2_scaledtrigfeatures.mat') % IGBT Dataset
+load('device2_features.mat')
 load('EOLs.mat')
 
 % iEOL=68;
 iFeat=4;
 pdx=0;
 % EOL= Mfeatures2(iEOL,iFeat); % End of Life
-EOL=max(EOLs);
+EOL=mean(EOLs);
 iEOL=min(find(Mfeatures2(:,iFeat)<EOL));
-ff=0.99; % forgetting factor
+ff=0.9; % forgetting factor
 zeta=2; % Required anomalies for creating new rules
-buffer=3; % Number of initialization samples (> tau)
+buffer=4; % Number of initialization samples (> tau)
 
 %% Initialization
 
@@ -38,10 +38,10 @@ Zk = features.Energy(idx2);
 
 % RLS initialization
 if OFFSET
-    Pm0=10e3*eye(tau+1);
+    Pm0=1e3*eye(tau+1);
     theta{1}=zeros(tau+1,1);
 else
-	Pm0=10e3*eye(tau);
+	Pm0=1e3*eye(tau);
     theta{1}=zeros(tau,1);
 end
 P{1}=Pm0;
@@ -57,7 +57,7 @@ end
 % EEFIG initialization
 [n,p] = size(Zk);
 labels = zeros(n,1);
-thr = chi2inv(0.999,p);
+thr = chi2inv(0.99,p);
 separation = 2; % c-separation
 aux_gran = granule([p,1]);
 aux_gran = aux_gran.gran_init(p,Zk(1:buffer,1:p));
@@ -65,7 +65,7 @@ EEFIG = granule([p,1]);
 EEFIG = EEFIG.gran_init(p,Zk(1:buffer,1:p));
 trackerC = 1*eye(p);
 trackerm = mean(Zk(1:buffer,1:p));
-lambda = 0.75;
+lambda = 0.655;
 Anomalies = [];
 continuous_anomalies = 0;
 
@@ -170,7 +170,7 @@ for i = buffer+1:n-tau
         err = Yk(i) - ykh;
         EEFIG_Error = [EEFIG_Error err];
         
-        if i>20
+        if i>15
             if OFFSET
                 [rul(i,:),xp]=predictRUL_v9(EEFIG,[1 data(i,:)],EOL,thr,OFFSET);
             else
@@ -185,7 +185,7 @@ for i = buffer+1:n-tau
                 [rul(i-buffer,:),xp,rul_inf(i-buffer,:),rul_sup(i-buffer,:)]=predictRUL_v9(EEFIG,[Xk(i,:)],EOL,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
             end
         else
-            rul(i,:) = nan;
+            rul(i,:) = inf;
         end
 end
 
@@ -212,7 +212,7 @@ end
 subplot(4,1,1:3)
 vrul=iEOL-buffer-tau-1:-1:0;
 
-vidx = 1:length(vrul);
+vidx = buffer+1:length(vrul);
 plot(vidx,vrul(vidx),'b--','Linewidth',1)
 hold on
 plot(vidx,rul(vidx),'r-','LineWidth',1.5)
@@ -241,4 +241,4 @@ figure
 plot(gvec)
 legend('g_1','g_2','g_3','g_4','g_5','g_6')
 
-save('prog_EEFIG','EEFIG','trackerC','trackerm');
+save('prog_EEFIG','EEFIG','trackerC','trackerm','P');

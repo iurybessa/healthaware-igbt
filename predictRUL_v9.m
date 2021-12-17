@@ -57,15 +57,16 @@ while ( ((pdx && xp(j,1)<=EOL-epsi) || (~pdx && xp(j,1)>=EOL+epsi) ) && j<=150)
 end
 if j<150
     rul = j-1;
-    if isempty(find(xp_inf <= EOL+ epsi-0*vs*sqrt(nu0), 1))
+    if isempty(find(xp_inf <= EOL, 1)) || find(xp_inf <= EOL, 1)==1
         rul_inf = 0;
-        if isempty(find(xp_sup <= EOL+ epsi+0*vs*sqrt(nu0), 1))
+        if isempty(find(xp_sup <= EOL, 1))
             rul_sup=0;
         else
-            rul_sup = find(xp_sup <= EOL+ epsi+0*vs*sqrt(nu0), 1) - 1;
+            rul_sup = find(xp_sup <= EOL, 1) - 1;
+            rul_inf = rul - (rul_sup-rul);
         end
     else
-        rul_inf = find(xp_inf <= EOL+ epsi-0*vs*sqrt(nu0), 1) - 1;
+        rul_inf = find(xp_inf <= EOL, 1) - 1;
         rul_sup = rul + (rul-rul_inf);
     end
 else

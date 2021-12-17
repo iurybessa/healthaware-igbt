@@ -6,25 +6,26 @@ addpath('data_igbt');
 %%  Parameters
 
 cont_learn=1;
-tau=10; % number of autoregressive terms
-tau2=9; % number of autoregressive terms
+tau=4; % number of autoregressive terms
+tau2=5; % number of autoregressive terms
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
-load('device1_scaledtrigfeatures.mat') % IGBT Dataset
-load('device1_features.mat')
+load('device3_scaledtrigfeatures.mat') % IGBT Dataset
+load('device3_features.mat')
 load('prog_EEFIG');
-iEOL=75;
+load('EOLs.mat');
 iFeat=4;
+EOL=max(EOLs);
+iEOL=min(find(Mfeatures2(:,iFeat)<EOL));
 pdx=0;
-EOL= Mfeatures2(iEOL,iFeat); % End of Life
-ff=0.999; % forgetting factor
-zeta=3; % Required anomalies for creating new rules
-buffer=5; % Number of initialization samples (> tau)
+ff=0.92; % forgetting factor
+zeta=2; % Required anomalies for creating new rules
+buffer=4; % Number of initialization samples (> tau)
 
 %% Initialization
 
 % Data pre-processing
 %EOL = Mfeatures2(60,4);
-data1 = Mfeatures2(:,iFeat)-EOL;
+data1 = Mfeatures2(:,iFeat);
 idx = hankel(1:tau+1, tau+1:length(data1))';
 idx2 = hankel(1:tau2, tau2:length(features.Energy))';
 data2 = data1(idx);
@@ -32,47 +33,6 @@ Xk = data2(:, 1:end-1);
 Yk = data2(:, end);
 % Xk = [Xk (1:length(Yk))'];
 Zk = features.Energy(idx2);
-
-
-% RLS initialization
-if OFFSET
-    Pm0=0.1e3*eye(tau+1);
-    theta{1}=zeros(tau+1,1);
-else
-    Pm0=0.1e3*eye(tau);
-    theta{1}=zeros(tau,1);
-end
-if ~cont_learn
-    P{1}=Pm0;
-    for j=1:buffer
-        theta0=theta{1};
-        P1=P{1};
-        [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,1,1);
-    %             [t2,P2]=wrls_murilo(P1,Yk(j),Xk(j,:)',theta0,g(k),ff);
-        P{1}=P2;
-        theta{1}=t2;
-    end
-else
-    [g,~,~,~] = data_evaluation(EEFIG,xk,thr);
-    for k=1:ngran
-        theta0=EEFIG(k).A;
-        P0=Pm0;
-        [K_k,thetap,Pp]=rls_step3(P0,Yk(i),Xk(i,:),theta0,g(k),ff);
-        theta{k}=thetap;
-        P{k}=Pp;
-        EEFIG(k).A=theta{k};
-    end   
-    theta=EEFIG().A;
-    P{1}=Pm0;
-    for j=1:buffer
-        theta0=theta{1};
-        P1=P{1};
-        [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,1,1);
-    %             [t2,P2]=wrls_murilo(P1,Yk(j),Xk(j,:)',theta0,g(k),ff);
-        P{1}=P2;
-        theta{1}=t2;
-    end    
-end
 
 % EEFIG initialization
 [n,p] = size(Zk);
@@ -93,6 +53,41 @@ continuous_anomalies = 0;
 
 EEFIG_Error = [];
 EEFIG_Error_Var = [];
+
+% RLS initialization
+if OFFSET
+    Pm0=5e3*eye(tau+1);
+    theta{1}=zeros(tau+1,1);
+else
+	Pm0=5e3*eye(tau);
+    theta{1}=zeros(tau,1);
+end
+if ~cont_learn
+    P{1}=Pm0;
+    for j=1:buffer
+        theta0=theta{1};
+        P1=P{1};
+        [~,t2,P2]=rls_step3(P1,Yk(j),Xk(j,:),theta0,1,1);
+    %             [t2,P2]=wrls_murilo(P1,Yk(j),Xk(j,:)',theta0,g(k),ff);
+        P{1}=P2;
+        theta{1}=t2;
+    end
+else
+    for j=1:buffer
+        [g,~,~,~] = data_evaluation(EEFIG,Zk(j,:),thr);
+        ngran=numel(EEFIG);
+        for k=1:ngran
+            theta0=EEFIG(k).A;
+            P0=P{k};
+            [K_k,thetap,Pp]=rls_step3(P0,Yk(j),Xk(j,:),theta0,g(k),ff);
+            theta{k}=thetap;
+            P{k}=Pp;
+            EEFIG(k).A=theta{k};
+        end
+    end
+end
+
+
 
 for i = buffer+1:n-tau
     xk = Zk(i,:);
@@ -204,7 +199,7 @@ for i = buffer+1:n-tau
 %                 if Yk(i)<=0
 %                     i
 %                 end
-                [rul(i-buffer,:),xp,rul_inf(i-buffer,:),rul_sup(i-buffer,:)]=predictRUL(EEFIG,[Xk(i,:)],0,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
+                [rul(i-buffer,:),xp,rul_inf(i-buffer,:),rul_sup(i-buffer,:)]=predictRUL_v9(EEFIG,[Xk(i,:)],EOL,thr,OFFSET,nu0,rho_nu,xk,pdx,Yk(i:end));
             end
         else
             rul(i,:) = nan;
