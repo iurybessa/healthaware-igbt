@@ -32,6 +32,7 @@ dg_da= (Lamb./f_i)*g*(g-1);
 dg_db= (Lamb./f_i)*g*(1-g);
 dg_dm= (Lamb_mu./f_i)*g*(1-g);
 
+
 delta_a = gran.a - gran_test.a;
 delta_m = gran.m - gran_test.m;
 delta_b = gran.b - gran_test.b;
@@ -44,8 +45,8 @@ end
 
 Q_it = (mahal_xk * gran.gsum);
 gran.Q_it = [gran.Q_it;Q_it];
-gran.Q = cumsum(gran.Q_it);
-
+% gran.Q = cumsum(gran.Q_it);
+gran.Q = mean(gran.Q_it);
 if (gran.Q(end)) >  (gran_test.Q(end))
     updated_gran = gran;
     is_improved = 1;

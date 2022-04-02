@@ -1,6 +1,6 @@
 function [rul,xp,rul_inf,rul_sup]=predictRUL_v9(eefig,xk,EOL,thr,OFFSET,nu0,rho_nu,zk,pdx,Y)
 ngran=numel(eefig);
-epsi=0*1.55e-3;
+epsi=0e-3;
 if OFFSET
     xd=xk(1,2:end);
 else
@@ -49,24 +49,24 @@ while ( ((pdx && xp(j,1)<=EOL-epsi) || (~pdx && xp(j,1)>=EOL+epsi) ) && j<=150)
     
     Xi = Hs'*Thetas';
     nuj = Xi*(covmat(nu).*rho_nu)*Xi' + nu0;
-    xp_inf(j,1)=xpi-vs*sqrt(nuj);
-    xp_sup(j,1)=xpi+vs*sqrt(nuj);
+    xp_inf(j,1)=xpi-2*vs*sqrt(nuj);
+    xp_sup(j,1)=xpi+2*vs*sqrt(nuj);
     
     xd=[xpi,xd(1,1:end-1)];
     nu=[nuj,nu(1:end-1)];
 end
 if j<150
-    rul = j-1;
+    rul = j;
     if isempty(find(xp_inf <= EOL, 1)) || find(xp_inf <= EOL, 1)==1
         rul_inf = 0;
         if isempty(find(xp_sup <= EOL, 1))
             rul_sup=0;
         else
-            rul_sup = find(xp_sup <= EOL, 1) - 1;
+            rul_sup = find(xp_sup <= EOL, 1) ;
             rul_inf = rul - (rul_sup-rul);
         end
     else
-        rul_inf = find(xp_inf <= EOL, 1) - 1;
+        rul_inf = find(xp_inf <= EOL, 1) ;
         rul_sup = rul + (rul-rul_inf);
     end
 else

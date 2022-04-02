@@ -146,7 +146,7 @@ classdef granule
             Q_xk = (mahal1_xk) * (gran.gsum); % h.c
             %             Q_xk = (mahal1_xk) * g; % h.c
             gran.Q_it = [gran.Q_it ; Q_xk];
-            gran.Q = cumsum(gran.Q_it);
+            gran.Q = mean(gran.Q_it);
         end %end_evolv_gran_init
         %% Granule initialization
         function [gran] = gran_init(oldrule,p,varargin)
@@ -180,7 +180,7 @@ classdef granule
                 Q_xk1 = ((varargin{1}(1,1:p)-gran.m)*gran.C*(varargin{1}(1,1:p)-gran.m)')*1;
                 Q_xk2 = ((varargin{1}(2,1:p)-gran.m)*gran.C*(varargin{1}(2,1:p)-gran.m)')*gran.gsum;
                 gran.Q_it = [Q_xk1;Q_xk2];
-                gran.Q = cumsum(gran.Q_it);
+                gran.Q = mean(gran.Q_it);
                 gran.A = [];
                 gran.B = [];
                 

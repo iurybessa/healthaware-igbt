@@ -1,12 +1,16 @@
+
 %% RUL Estimation with EEFIG
 
-clc, clear all, close all
-addpath('EEFIG_FULL');
-addpath('data_igbt');
-%%  Parameters
 
-tau=4; % number of autoregressive terms
-tau2=5; % number of autoregressive terms
+%%  Parameters
+if ~VAL
+    tau=4; % number of autoregressive terms
+    tau2=3; % number of autoregressive terms
+    ff=0.999; % forgetting factor
+    zeta=3; % Required anomalies for creating new rules
+    buffer=7; % Number of initialization samples (> tau)
+end
+
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
 load('device2_scaledtrigfeatures.mat') % IGBT Dataset
 load('device2_features.mat')
@@ -17,10 +21,7 @@ iFeat=4;
 pdx=0;
 % EOL= Mfeatures2(iEOL,iFeat); % End of Life
 EOL=mean(EOLs);
-iEOL=min(find(Mfeatures2(:,iFeat)<EOL));
-ff=0.9; % forgetting factor
-zeta=2; % Required anomalies for creating new rules
-buffer=4; % Number of initialization samples (> tau)
+iEOL=min(find(Mfeatures2(:,iFeat)<=EOL));
 
 %% Initialization
 
@@ -38,10 +39,10 @@ Zk = features.Energy(idx2);
 
 % RLS initialization
 if OFFSET
-    Pm0=1e3*eye(tau+1);
+    Pm0=5e3*eye(tau+1);
     theta{1}=zeros(tau+1,1);
 else
-	Pm0=1e3*eye(tau);
+	Pm0=5e3*eye(tau);
     theta{1}=zeros(tau,1);
 end
 P{1}=Pm0;
@@ -57,21 +58,21 @@ end
 % EEFIG initialization
 [n,p] = size(Zk);
 labels = zeros(n,1);
-thr = chi2inv(0.99,p);
-separation = 2; % c-separation
+thr = chi2inv(0.999,p);
+separation = 1; % c-separation
 aux_gran = granule([p,1]);
 aux_gran = aux_gran.gran_init(p,Zk(1:buffer,1:p));
 EEFIG = granule([p,1]);
 EEFIG = EEFIG.gran_init(p,Zk(1:buffer,1:p));
 trackerC = 1*eye(p);
 trackerm = mean(Zk(1:buffer,1:p));
-lambda = 0.655;
+lambda = 0.9;
 Anomalies = [];
 continuous_anomalies = 0;
 
 EEFIG_Error = [];
 EEFIG_Error_Var = [];
-
+gvec=[];
 for i = buffer+1:n-tau
     xk = Zk(i,:);
     %% Change point detection
@@ -122,7 +123,6 @@ for i = buffer+1:n-tau
     end
 
     [g,EEFIG,~,lastactive] = data_evaluation(EEFIG,xk,thr);
-    gvec(i,:)=g;
     ngran = numel(EEFIG);   
        
     %% Estimation of the A's matrices - Consequent Estimation via RLS
@@ -209,36 +209,43 @@ end
 % plot(data(:,1),data(:,2),'k.')
 
 %%
-subplot(4,1,1:3)
+
 vrul=iEOL-buffer-tau-1:-1:0;
 
 vidx = buffer+1:length(vrul);
-plot(vidx,vrul(vidx),'b--','Linewidth',1)
-hold on
-plot(vidx,rul(vidx),'r-','LineWidth',1.5)
-%plot(vidx,rul_inf(vidx))
-% rul_sup = rul + (rul-rul_inf);
-%plot(vidx,rul_sup(vidx));
-errorbar(vidx,rul(vidx),rul(vidx)-rul_inf(vidx),rul(vidx)-rul_sup(vidx),'ko')
+if PLOTF
+    subplot(4,1,1:3)
+    plot(vidx,vrul(vidx),'b--','Linewidth',1)
+    hold on
+    plot(vidx,rul(vidx),'r-','LineWidth',1.5)
+    %plot(vidx,rul_inf(vidx))
+    % rul_sup = rul + (rul-rul_inf);
+    %plot(vidx,rul_sup(vidx));
+    errorbar(vidx,rul(vidx),rul(vidx)-rul_inf(vidx),rul(vidx)-rul_sup(vidx),'ko')
 
-xlabel('time')
-ylabel('RUL')
-alpha=0.3;
-plot(vidx,(1-alpha)*vrul(vidx),':b','Linewidth',1.5)
-plot(vidx,(1+alpha)*vrul(vidx),':b','Linewidth',1.5)
-[~,maxgvec] = max(gvec');
-
-subplot(4,1,4)
-stairs(vidx, maxgvec(vidx)*5, 'LineWidth', 2);
+    xlabel('time')
+    ylabel('RUL')
+    alpha=0.3;
 
 
-%%
-figure
-plot(pred)
-hold on
-plot(deg)
-figure
-plot(gvec)
-legend('g_1','g_2','g_3','g_4','g_5','g_6')
 
-save('prog_EEFIG','EEFIG','trackerC','trackerm','P');
+    plot(vidx,(1-alpha)*vrul(vidx),':b','Linewidth',1.5)
+    plot(vidx,(1+alpha)*vrul(vidx),':b','Linewidth',1.5)
+    [~,maxgvec] = max(gvec');
+
+    subplot(4,1,4)
+    stairs(vidx, maxgvec(vidx)*5, 'LineWidth', 2);
+
+
+    %%
+    figure
+    plot(pred)
+    hold on
+    plot(deg)
+    figure
+    plot(gvec)
+    legend('g_1','g_2','g_3','g_4','g_5','g_6')
+end
+if SAVEF
+    save('prog_EEFIG','EEFIG','trackerC','trackerm','P');
+end
