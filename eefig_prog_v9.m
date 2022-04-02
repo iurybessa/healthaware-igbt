@@ -1,14 +1,14 @@
 
 %% RUL Estimation with EEFIG
 
-% VAL=0;
+VAL=0;
 
 %%  Parameters
 if ~VAL
     clc, clear all, close all
     addpath('EEFIG_FULL');
     addpath('data_igbt');
-    load('bestp_dv2');
+    load('bestp_dv4');
 %     tau=4; % number of autoregressive terms
 %     tau2=3; % number of autoregressive terms
 %     ff=0.999; % forgetting factor
@@ -21,8 +21,8 @@ if ~VAL
     zeta=bestp(5);
     PLOTF=1;
     SAVEF=1;
-    load('device4_scaledtrigfeatures.mat') % IGBT Dataset
-    load('device4_features.mat')
+    load('device3_scaledtrigfeatures.mat') % IGBT Dataset
+    load('device3_features.mat')
 end
 
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
