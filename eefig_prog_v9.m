@@ -1,19 +1,31 @@
 
 %% RUL Estimation with EEFIG
 
+% VAL=0;
 
 %%  Parameters
 if ~VAL
-    tau=4; % number of autoregressive terms
-    tau2=3; % number of autoregressive terms
-    ff=0.999; % forgetting factor
-    zeta=3; % Required anomalies for creating new rules
-    buffer=7; % Number of initialization samples (> tau)
+    clc, clear all, close all
+    addpath('EEFIG_FULL');
+    addpath('data_igbt');
+    load('bestp_dv2');
+%     tau=4; % number of autoregressive terms
+%     tau2=3; % number of autoregressive terms
+%     ff=0.999; % forgetting factor
+%     zeta=3; % Required anomalies for creating new rules
+%     buffer=7; % Number of initialization samples (> tau)
+    tau=bestp(1);
+    tau2=bestp(2);
+    ff=bestp(3);
+    buffer=bestp(4);
+    zeta=bestp(5);
+    PLOTF=1;
+    SAVEF=1;
+    load('device2_scaledtrigfeatures.mat') % IGBT Dataset
+    load('device2_features.mat')
 end
 
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
-load('device2_scaledtrigfeatures.mat') % IGBT Dataset
-load('device2_features.mat')
 load('EOLs.mat')
 
 % iEOL=68;
@@ -123,6 +135,7 @@ for i = buffer+1:n-tau
     end
 
     [g,EEFIG,~,lastactive] = data_evaluation(EEFIG,xk,thr);
+    gvec(i,:)=g;
     ngran = numel(EEFIG);   
        
     %% Estimation of the A's matrices - Consequent Estimation via RLS

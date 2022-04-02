@@ -3,6 +3,12 @@
 clc, clear all, close all
 addpath('EEFIG_FULL');
 addpath('data_igbt');
+dv=2;
+scldfeatname=strcat('device',num2str(dv),'_scaledtrigfeatures.mat')
+featname=strcat('device',num2str(dv),'_features.mat')
+load(scldfeatname); % IGBT Dataset
+load(featname);
+
 
 tauv=[2:5];
 tau2v=[2:5];
@@ -37,3 +43,7 @@ for tau=tauv
         end
     end
 end
+
+savename=strcat('bestp_dv',num2str(dv));
+
+save(savename,'bestp')
