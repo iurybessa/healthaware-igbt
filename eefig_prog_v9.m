@@ -21,8 +21,8 @@ if ~VAL
     zeta=bestp(5);
     PLOTF=1;
     SAVEF=1;
-    load('device2_scaledtrigfeatures.mat') % IGBT Dataset
-    load('device2_features.mat')
+    load('device4_scaledtrigfeatures.mat') % IGBT Dataset
+    load('device4_features.mat')
 end
 
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)

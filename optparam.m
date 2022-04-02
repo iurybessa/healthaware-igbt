@@ -3,7 +3,7 @@
 clc, clear all, close all
 addpath('EEFIG_FULL');
 addpath('data_igbt');
-dv=2;
+dv=4;
 scldfeatname=strcat('device',num2str(dv),'_scaledtrigfeatures.mat')
 featname=strcat('device',num2str(dv),'_features.mat')
 load(scldfeatname); % IGBT Dataset
