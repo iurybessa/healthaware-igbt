@@ -8,7 +8,7 @@ if ~VAL
     clc, clear all, close all
     addpath('EEFIG_FULL');
     addpath('data_igbt');
-    load('bestp_dv4');
+    load('bestp_dv4');  % using the parameters optimized for the device dv#
 %     tau=4; % number of autoregressive terms
 %     tau2=3; % number of autoregressive terms
 %     ff=0.999; % forgetting factor
@@ -21,6 +21,7 @@ if ~VAL
     zeta=bestp(5);
     PLOTF=1;
     SAVEF=1;
+    % Validating the parameter in the followinf device
     load('device3_scaledtrigfeatures.mat') % IGBT Dataset
     load('device3_features.mat')
 end
