@@ -1,14 +1,22 @@
 
 %% RUL Estimation with EEFIG
-
+MAPEMAT=zeros(4);
+for idpar=1:4
+    for idval=1:4
+clc
+clear gvec datahat EEFIG Yk Xk Zk rul vrul pred deg theta Anomalies
+close all
 VAL=0;
-
 %%  Parameters
 if ~VAL
-    clc, clear all, close all
+% 	idpar=2;
+%     idval=3;
+    parname=strcat('bestp_dv',num2str(idpar));
+    loadname1=strcat('device',num2str(idval),'_scaledtrigfeatures.mat');
+    loadname2=strcat('device',num2str(idval),'_features.mat');
     addpath('EEFIG_FULL');
     addpath('data_igbt');
-    load('bestp_dv4');  % using the parameters optimized for the device dv#
+    load(parname);  % using the parameters optimized for the device dv#
 %     tau=4; % number of autoregressive terms
 %     tau2=3; % number of autoregressive terms
 %     ff=0.999; % forgetting factor
@@ -22,8 +30,8 @@ if ~VAL
     PLOTF=1;
     SAVEF=1;
     % Validating the parameter in the followinf device
-    load('device3_scaledtrigfeatures.mat') % IGBT Dataset
-    load('device3_features.mat')
+    load(loadname1) % IGBT Dataset
+    load(loadname2)
 end
 
 OFFSET=0; % If OFFSET=1 then the model has a constant term (bias)
@@ -228,29 +236,48 @@ vrul=iEOL-buffer-tau-1:-1:0;
 
 vidx = buffer+1:length(vrul);
 if PLOTF
-    subplot(4,1,1:3)
-    plot(vidx,vrul(vidx),'b--','Linewidth',1)
+    startplot=20;
+    vec = [10, 10, 700, 1200];
+    figure('position', vec,'Color',[1 1 1]);
+    subplot(10,1,1:5)
+    realRUL=vrul(vidx);
+    hatRUL=rul(vidx);
+    p1=plot(vidx,vrul(vidx),'b--','Linewidth',1)
     hold on
-    plot(vidx,rul(vidx),'r-','LineWidth',1.5)
+    p2=plot(vidx,rul(vidx),'r-','LineWidth',1.5)
     %plot(vidx,rul_inf(vidx))
     % rul_sup = rul + (rul-rul_inf);
     %plot(vidx,rul_sup(vidx));
-    errorbar(vidx,rul(vidx),rul(vidx)-rul_inf(vidx),rul(vidx)-rul_sup(vidx),'ko')
+    p3=errorbar(vidx,rul(vidx),rul(vidx)-rul_inf(vidx),rul(vidx)-rul_sup(vidx),'ko')
 
-    xlabel('time')
-    ylabel('RUL')
+%     xlabel('time')
+%     ylabel('RUL')
     alpha=0.3;
 
 
 
-    plot(vidx,(1-alpha)*vrul(vidx),':b','Linewidth',1.5)
-    plot(vidx,(1+alpha)*vrul(vidx),':b','Linewidth',1.5)
+    p4=plot(vidx,(1-alpha)*vrul(vidx),':b','Linewidth',1.5)
+    p5=plot(vidx,(1+alpha)*vrul(vidx),':b','Linewidth',1.5)
     [~,maxgvec] = max(gvec');
-
-    subplot(4,1,4)
-    stairs(vidx, maxgvec(vidx)*5, 'LineWidth', 2);
-
-
+    legend([p1,p4,p2,p3],'True RUL','Accuracy cone ($\pm 30\%$)',...
+        '$\hat{\mathrm{RUL}}$','Uncertainty bounds','fontsize',20,...
+        'Orientation', 'vertical','interpreter','latex','Location','northeast');
+%     xlabel('Samples','interpreter','latex','fontsize',22);
+    ylabel('$\hat{\mathrm{RUL}}$','interpreter','latex','fontsize',22);
+    title('$\alpha$-$\lambda$ Plot','fontsize',24,'interpreter','latex');
+    set(gca,'FontSize',18);  
+	axis([startplot iEOL-buffer-tau-1 0 1.325*iEOL]);
+    subplot(10,1,7:10)
+    p6=stairs(vidx, maxgvec(vidx), 'LineWidth', 2);
+    yticks([1:max(maxgvec(vidx))])
+    ymax=max(maxgvec(startplot:iEOL-buffer-tau-1))+0.1;
+    axis([startplot iEOL-buffer-tau-1 0.9 ymax]);
+    xlabel('Samples','interpreter','latex','fontsize',22);
+    ylabel('Granule index','interpreter','latex','fontsize',22);
+    title('Most relevant granule','fontsize',24,'interpreter','latex');
+    set(gca,'FontSize',18);   
+    figname=strcat('result_par',num2str(idpar),'_val',num2str(idval));
+    saveas(gcf,figname,'epsc');
     %%
     figure
     plot(pred)
@@ -259,7 +286,12 @@ if PLOTF
     figure
     plot(gvec)
     legend('g_1','g_2','g_3','g_4','g_5','g_6')
+    MAPEMAT(idval,idpar)=mapek(realRUL,hatRUL,startplot-5,realRUL(1))
 end
+
 if SAVEF
     save('prog_EEFIG','EEFIG','trackerC','trackerm','P');
+end
+
+    end
 end
